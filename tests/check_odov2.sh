@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -x
 DEVFILES_DIR="$(pwd)/stacks/"
@@ -73,7 +73,7 @@ test() {
         # ToDo: Clean up, I'm not happy about having specific checks for the stacks with multiple ports
         # But since we're testing against minikube, we need to specifically create the URL/ingress before pushing
         # And if there's multiple ports in the devfile, a port must be specified.
-        if [ "$devfileName" = "java-wildfly" ] || [ "$devfileName" = "java-wildfly-bootable-jar" ]; then
+        if [[ "$devfileName" = "java-wildfly"* ]] || [[ "$devfileName" = "java-wildfly-bootable-jar"* ]]; then
             $ODO_PATH url create --host "$(minikube ip).nip.io" --port 8080 || error=true
             $ODO_PATH url create --host "$(minikube ip).nip.io" --port 16686 || error=true
         else
@@ -150,13 +150,27 @@ if [ "$REGISTRY" != "local" ] && [ "$REGISTRY" != "remote" ]; then
   exit 1
 fi
 
-for devfile_dir in $(find $DEVFILES_DIR -maxdepth 1 -type d ! -path $DEVFILES_DIR); do
-    devfile_name="$(basename $devfile_dir)"
+for devfile_dir in $(find $DEVFILES_DIR -maxdepth 2 -type d ! -path $DEVFILES_DIR); do
     devfile_path=$devfile_dir/devfile.yaml
+    if [ ! -f "$devfile_path" ]; then
+        # multi version stacks contain nested devfiles
+        continue
+    fi
+
+    devfile_name=$($YQ_PATH eval '.metadata.name' $devfile_path)
+    devfile_version=$($YQ_PATH eval '.metadata.version' $devfile_path)
+    devfile_schema_version=$($YQ_PATH eval '.schemaVersion' $devfile_path)
+
+    # deploying a multi version stack requires unique namespaces
+    name=$devfile_name-${devfile_version//.}
+
     # Skipping the java-wildfly-bootable-jar stack right now since it's broken.
     # ToDo: Uncomment once fixed.
     if [ $devfile_name != "java-wildfly-bootable-jar" ]; then
-      test "$devfile_name" "$devfile_path"
+        # skip devfiles that use 2.2
+        if [[ $devfile_schema_version != "2.2."* ]]; then
+            test "$name" "$devfile_path"
+        fi
     fi
 done
 

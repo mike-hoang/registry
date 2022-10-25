@@ -22,6 +22,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -40,6 +41,7 @@ import (
 	"github.com/devfile/library/pkg/devfile/parser/data/v2/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v3"
 )
 
 var stacksDir string
@@ -52,6 +54,26 @@ func init() {
 
 // all stacks to be tested
 var stacks []Stack
+
+func createStack(fileName string, path string) (Stack, error) {
+	stack := Stack{id: fileName, devfilePath: path}
+
+	parserArgs := parser.ParserArgs{
+		Path: stack.devfilePath,
+	}
+
+	devfile, _, err := devfile.ParseDevfileAndValidate(parserArgs)
+	if err != nil {
+		return Stack{}, err
+	}
+
+	stack.starterProjects, err = devfile.Data.GetStarterProjects(common.DevfileOptions{})
+	if err != nil {
+		return Stack{}, err
+	}
+
+	return stack, err
+}
 
 func TestOdo(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -70,20 +92,29 @@ func TestOdo(t *testing.T) {
 
 	for _, file := range files {
 		if file.IsDir() {
-			stack := Stack{id: file.Name(), devfilePath: stacksDir + "/" + file.Name() + "/devfile.yaml"}
+			stackYaml := filepath.Join(stacksDir, file.Name(), "stack.yaml")
+			if _, err := os.Stat(stackYaml); errors.Is(err, os.ErrNotExist) {
+				// not a multi version stack
+				path := filepath.Join(stacksDir, file.Name(), "devfile.yaml")
+				stack, err := createStack(file.Name(), path)
+				g.Expect(err).To(BeNil())
+				stacks = append(stacks, stack)
+			} else {
+				// multi version stack
+				buf, err := ioutil.ReadFile(stackYaml)
+				g.Expect(err).To(BeNil())
 
-			parserArgs := parser.ParserArgs{
-				Path: stack.devfilePath,
+				stackInfo := StackInfo{}
+				err = yaml.Unmarshal(buf, &stackInfo)
+				g.Expect(err).To(BeNil())
+
+				for _, version := range stackInfo.Versions {
+					path := filepath.Join(stacksDir, file.Name(), version.Version, "devfile.yaml")
+					stack, err := createStack(file.Name(), path)
+					g.Expect(err).To(BeNil())
+					stacks = append(stacks, stack)
+				}
 			}
-
-			devfile, _, err := devfile.ParseDevfileAndValidate(parserArgs)
-			g.Expect(err).To(BeNil())
-
-			stack.starterProjects, err = devfile.Data.GetStarterProjects(common.DevfileOptions{})
-			g.Expect(err).To(BeNil())
-
-			stacks = append(stacks, stack)
-
 		}
 	}
 
