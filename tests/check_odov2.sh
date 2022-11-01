@@ -37,9 +37,11 @@ waitForHTTPStatus() {
 # parameters:
 # - name of a component and project 
 # - path to devfile.yaml
+# - namespace for the project
 test() {
     devfileName=$1
     devfilePath=$2
+    namespace=$3
 
     # remember if there was en error
     error=false
@@ -47,10 +49,10 @@ test() {
     tmpDir=$(mktemp -d)
     cd "$tmpDir" || return 1
 
-    $ODO_PATH project create "$devfileName" || error=true
+    $ODO_PATH project create "$namespace" || error=true
     if $error; then
         echo "ERROR project create failed"
-        FAILED_TESTS="$FAILED_TESTS $devfileName"
+        FAILED_TESTS="$FAILED_TESTS $namespace"
         return 1
     fi
     
@@ -64,8 +66,8 @@ test() {
 
     if $error; then
         echo "ERROR create failed"
-        $ODO_PATH project delete -f "$devfileName"
-        FAILED_TESTS="$FAILED_TESTS $devfileName"
+        $ODO_PATH project delete -f "$namespace"
+        FAILED_TESTS="$FAILED_TESTS $namespace"
         return 1
     fi
 
@@ -81,8 +83,8 @@ test() {
         fi
         if $error; then
             echo "ERROR url create failed"
-            $ODO_PATH project delete -f "$devfileName"
-            FAILED_TESTS="$FAILED_TESTS $devfileName"
+            $ODO_PATH project delete -f "$namespace"
+            FAILED_TESTS="$FAILED_TESTS $namespace"
             return 1
         fi
     fi
@@ -91,8 +93,8 @@ test() {
     if $error; then
         echo "ERROR push failed"
         $ODO_PATH delete -f -a || error=true
-        $ODO_PATH project delete -f "$devfileName"
-        FAILED_TESTS="$FAILED_TESTS $devfileName"
+        $ODO_PATH project delete -f "$namespace"
+        FAILED_TESTS="$FAILED_TESTS $namespace"
         return 1
     fi
 
@@ -105,8 +107,8 @@ test() {
         waitForHTTPStatus "$url" "$statusCode"
         if [ $? -ne 0 ]; then
             echo "ERROR unable to get working url"
-            $ODO_PATH project delete -f "$devfileName"
-            FAILED_TESTS="$FAILED_TESTS $devfileName"
+            $ODO_PATH project delete -f "$namespace"
+            FAILED_TESTS="$FAILED_TESTS $namespace"
             error=true
             return 1
         fi
@@ -114,12 +116,12 @@ test() {
 
     # kill -9 $CPID
     $ODO_PATH delete -f -a || error=true
-    $ODO_PATH project delete -f "$devfileName"
+    $ODO_PATH project delete -f "$namespace"
 
     if $error; then
         echo "FAIL"
         # record failed test
-        FAILED_TESTS="$FAILED_TESTS $devfileName"
+        FAILED_TESTS="$FAILED_TESTS $namespace"
         return 1
     fi
 
@@ -157,20 +159,22 @@ for devfile_dir in $(find $DEVFILES_DIR -maxdepth 2 -type d ! -path $DEVFILES_DI
         continue
     fi
 
+    # skip devfiles that use 2.2
+    devfile_schema_version=$($YQ_PATH eval '.schemaVersion' $devfile_path)
+    if [[ $devfile_schema_version == "2.2."* ]]; then
+        continue
+    fi
+
     devfile_name=$($YQ_PATH eval '.metadata.name' $devfile_path)
     devfile_version=$($YQ_PATH eval '.metadata.version' $devfile_path)
-    devfile_schema_version=$($YQ_PATH eval '.schemaVersion' $devfile_path)
 
     # deploying a multi version stack requires unique namespaces
-    name=$devfile_name-${devfile_version//.}
+    namespace=$devfile_name-${devfile_version//.}
 
     # Skipping the java-wildfly-bootable-jar stack right now since it's broken.
     # ToDo: Uncomment once fixed.
     if [ $devfile_name != "java-wildfly-bootable-jar" ]; then
-        # skip devfiles that use 2.2
-        if [[ $devfile_schema_version != "2.2."* ]]; then
-            test "$name" "$devfile_path"
-        fi
+        test "$devfile_name" "$devfile_path" "$namespace"
     fi
 done
 
