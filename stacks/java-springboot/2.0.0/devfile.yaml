@@ -46,13 +46,6 @@ components:
         buildContext: .
         rootRequired: false
   - name: deploy
-    attributes:
-      deployment/replicas: 1
-      deployment/cpuLimit: "100m"
-      deployment/cpuRequest: 10m
-      deployment/memoryLimit: 300Mi
-      deployment/memoryRequest: 180Mi
-      deployment/container-port: 8081
     kubernetes:
       uri: kubernetes/deploy.yaml
       endpoints:

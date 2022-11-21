@@ -33,6 +33,9 @@ spec:
               containerPort: 8081
               protocol: TCP
           resources:
+            requests:
+              memory: "50Mi"
+              cpu: "10m"
             limits:
-              memory: "128Mi"
-              cpu: "500m"
+              memory: "100Mi"
+              cpu: "100m"
