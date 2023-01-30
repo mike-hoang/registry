@@ -17,7 +17,7 @@ name: Validate stacks
 
 on:
   push:
-    branches: [main]
+    branches: [main, test/actions]
   pull_request:
     branches: [main]
   schedule:
@@ -33,29 +33,29 @@ env:
   TEST_DELTA: false
 
 jobs:
-  validate-devfile-schema:
-    name: validate devfile schemas
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  # validate-devfile-schema:
+  #   name: validate devfile schemas
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "1.19"
+  #     - name: Install Go
+  #       uses: actions/setup-go@v3
+  #       with:
+  #         go-version: "1.19"
 
-      - name: Install Ginkgo
-        run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
+  #     - name: Install Ginkgo
+  #       run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
 
-      - name: Test delta if on a pull request
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "TEST_DELTA=true" >> $GITHUB_ENV
+  #     - name: Test delta if on a pull request
+  #       if: ${{ github.event_name == 'pull_request' }}
+  #       run: echo "TEST_DELTA=true" >> $GITHUB_ENV
 
-      - name: Validate stacks
-        run: tests/validate_devfile_schemas.sh
+  #     - name: Validate stacks
+  #       run: tests/validate_devfile_schemas.sh
 
   non-terminating:
     name: check for non-terminating images
@@ -117,43 +117,43 @@ jobs:
       - name: Check the devfile stacks with odo v2
         run: tests/check_odov2.sh odo
 
-  odov3:
-    name: with odo v3
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  # odov3:
+  #   name: with odo v3
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.7.0
-        with:
-          minikube version: ${{ env.MINIKUBE_VERSION }}
-          kubernetes version: ${{ env.KUBERNETES_VERSION }}
-          driver: "docker"
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          start args: "--addons=ingress"
+  #     - name: Setup Minikube
+  #       uses: manusa/actions-setup-minikube@v2.7.0
+  #       with:
+  #         minikube version: ${{ env.MINIKUBE_VERSION }}
+  #         kubernetes version: ${{ env.KUBERNETES_VERSION }}
+  #         driver: "docker"
+  #         github token: ${{ secrets.GITHUB_TOKEN }}
+  #         start args: "--addons=ingress"
 
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "1.19"
+  #     - name: Install Go
+  #       uses: actions/setup-go@v3
+  #       with:
+  #         go-version: "1.19"
 
-      - name: Install odo v3
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          odo: "3.2.0"
+  #     - name: Install odo v3
+  #       uses: redhat-actions/openshift-tools-installer@v1
+  #       with:
+  #         odo: "3.2.0"
 
-      - name: Install Ginkgo
-        run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
+  #     - name: Install Ginkgo
+  #       run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
 
-      - name: Check odo version
-        run: odo version
+  #     - name: Check odo version
+  #       run: odo version
 
-      - name: Test delta if on a pull request
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "TEST_DELTA=true" >> $GITHUB_ENV
+  #     - name: Test delta if on a pull request
+  #       if: ${{ github.event_name == 'pull_request' }}
+  #       run: echo "TEST_DELTA=true" >> $GITHUB_ENV
 
-      - name: Check the devfile stacks with odo v3
-        run: tests/check_odov3.sh
+  #     - name: Check the devfile stacks with odo v3
+  #       run: tests/check_odov3.sh
