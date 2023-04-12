@@ -50,9 +50,9 @@ jobs:
       - name: Install Ginkgo
         run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
 
-      - name: Test delta if on a pull request
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "TEST_DELTA=true" >> $GITHUB_ENV
+      #- name: Test delta if on a pull request
+        #if: ${{ github.event_name == 'pull_request' }}
+        #run: echo "TEST_DELTA=true" >> $GITHUB_ENV
 
       - name: Validate stacks
         run: tests/validate_devfile_schemas.sh
