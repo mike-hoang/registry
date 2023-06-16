@@ -183,6 +183,12 @@ for stack in $STACKS; do
 
   isNonTerminating "${image}" "${command_string}" "${command_args_string}"
 
+  # remove image to save space
+  if [ "$ENV" = "minikube" ]; then
+    echo "  COMMAND: minikube ssh docker image rm ${image}"
+    minikube ssh docker image rm ${image} >/dev/null 2>&1
+  fi
+
   echo "======================="
 done
 

@@ -17,7 +17,7 @@ name: Validate stacks
 
 on:
   push:
-    branches: [main]
+    branches: [main, API-1135]
   pull_request:
     branches: [main]
   schedule:
@@ -50,9 +50,9 @@ jobs:
       - name: Install Ginkgo
         run: go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
 
-      - name: Test delta if on a pull request
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "TEST_DELTA=true" >> $GITHUB_ENV
+      # - name: Test delta if on a pull request
+      #   if: ${{ github.event_name == 'pull_request' }}
+      #   run: echo "TEST_DELTA=true" >> $GITHUB_ENV
 
       - name: Validate stacks
         run: bash tests/validate_devfile_schemas.sh
