@@ -79,8 +79,15 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: echo "TEST_DELTA=true" >> $GITHUB_ENV
 
+      - name: Check disk space before test
+        run: df -h
+
       - name: Check that containers components are non terminating
         run: bash tests/check_non_terminating.sh
+
+      - name: Check disk space after test
+        if: always()
+        run: df -h
 
   # odov2:
   #   name: with odo v2
